@@ -4,7 +4,7 @@ LIB = lib
 JTB = $(LIB)/jtb133di.jar
 JAVACC = $(LIB)/javacc5.jar
 
-all: jtb jcc
+all: jcc
 
 $(GEN):
 		mkdir -p $@ 
