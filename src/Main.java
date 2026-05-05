@@ -20,12 +20,18 @@ public class Main {
 
       System.err.println("Program parsed successfully.");
 
-      //  MyVisitor eval = new MyVisitor();
-      // root.accept(eval, null);
+      SpyVisitor eval = new SpyVisitor();
+      root.accept(eval, null);
+
     } catch (ParseException ex) {
       System.out.println(ex.getMessage());
+
     } catch (FileNotFoundException ex) {
       System.err.println(ex.getMessage());
+    
+    } catch (Exception ex){
+      System.err.println(ex.getMessage());
+
     } finally {
       try {
         if (fis != null)
