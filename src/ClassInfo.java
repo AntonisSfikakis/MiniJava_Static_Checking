@@ -15,7 +15,15 @@ public class ClassInfo {
     this.Methods = new HashMap<>();
     this.Parent_class = parent_class; 
   }
-
+ 
+  @Override
+  public String toString() {
+     return "ClassInfo{" +
+        "Parent=" + Parent_class +
+        ", Fields=" + Field +
+        ", Methods=" + Methods +
+        "}";
+  }
 }
 
 class MethodInfo {
@@ -28,6 +36,15 @@ class MethodInfo {
     this.Parameters  = new LinkedHashMap<>();
     this.Local_vars  = new HashMap<>();
   }
-
+ 
+  @Override
+  public String toString() {
+     return "MethodInfo{" +
+        "Return=" + Return_type +
+        ", Params=" + Parameters +
+        ", LocalVars=" + Local_vars +
+        "}";
+    }
+  
 }
 

@@ -22,6 +22,8 @@ public class Main {
 
       SpyVisitor eval = new SpyVisitor();
       root.accept(eval, null);
+      
+      System.out.println(eval.getSpy());
 
     } catch (ParseException ex) {
       System.out.println(ex.getMessage());
@@ -38,6 +40,7 @@ public class Main {
           fis.close();
       } catch (IOException ex) {
         System.err.println(ex.getMessage());
+
       }
     }
   }

@@ -6,7 +6,7 @@ JTB = $(LIB)/jtb133di.jar
 JAVACC = $(LIB)/javacc5.jar
 BUILD = build
 
-all: compile 
+all: compile clean
 
 $(GEN):
 		mkdir -p $@ 
