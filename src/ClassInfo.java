@@ -1,5 +1,6 @@
 import  java.util.HashMap;
 import  java.util.LinkedHashMap;
+import  java.util.List;
 /**
  * A class has  : fileds , methods and has to know its parent
  * A method has : local variables, return type, paremeters (with order) 
@@ -7,7 +8,7 @@ import  java.util.LinkedHashMap;
 
 public class ClassInfo {
   public HashMap<String, String> Field;
-  public HashMap<String, MethodInfo> Methods;
+  public HashMap<String, List<MethodInfo>> Methods;
   public String Parent_class;
 
   public ClassInfo (String parent_class) {

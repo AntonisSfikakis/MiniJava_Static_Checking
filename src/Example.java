@@ -5,7 +5,6 @@ class Example {
 
 class A {
 int i;
-int i;
 int[] f;
 A a;
 

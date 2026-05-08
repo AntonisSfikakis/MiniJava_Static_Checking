@@ -2,6 +2,8 @@ import syntaxtree.*;
 import visitor.*;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.ArrayList;
 
 class SpyVisitor extends GJDepthFirst<String, Void>{
   private HashMap<String, ClassInfo> Spy = new HashMap<>();
@@ -33,13 +35,9 @@ class SpyVisitor extends GJDepthFirst<String, Void>{
     @Override
     public String visit(MainClass n, Void argu) throws Exception {
         String classname = n.f1.accept(this, null);
-        ClassInfo a = new ClassInfo(" ");
+        ClassInfo a = new ClassInfo(null);
         Spy.put(classname, a);
          
-
-        super.visit(n, argu);
-        System.out.println();
-
         return null;
     }
 
@@ -56,7 +54,10 @@ class SpyVisitor extends GJDepthFirst<String, Void>{
     @Override
     public String visit(ClassDeclaration n, Void argu) throws Exception {
         String classname = n.f1.accept(this, argu);
-        Spy.put(classname, new ClassInfo(" "));
+        if (Spy.containsKey(classname)) 
+          throw new Exception("Duplicate class: " + classname);
+
+        Spy.put(classname, new ClassInfo(null));
         CurrentClass = classname;
 
         n.f3.accept(this, argu);
@@ -66,6 +67,7 @@ class SpyVisitor extends GJDepthFirst<String, Void>{
     }
 
     /**
+
      * f0 -> "class"
      * f1 -> Identifier()
      * f2 -> "extends"
@@ -81,7 +83,10 @@ class SpyVisitor extends GJDepthFirst<String, Void>{
         String parent_class = n.f3.accept(this, argu);
         
         CurrentClass = classname;
-        Spy.put(classname, new ClassInfo(parent_class));
+        if (Spy.containsKey(classname)) 
+          throw new Exception("Dulicate class: " + classname);
+
+        Spyp.put(classname, new ClassInfo(parent_class));
 
         n.f5.accept(this, argu);
         n.f6.accept(this, argu);
@@ -105,14 +110,21 @@ class SpyVisitor extends GJDepthFirst<String, Void>{
          * Else we are in a method.
          * */
 
-        if (CurrentMethod == null)
+        if (CurrentMethod == null) {
+          if (Spy.get(CurrentClass).Field.containsKey(var)) 
+           throw new Exception("Dulicate field initialization: " + var);           
+            
           Spy.get(CurrentClass).Field.put(var, type);
-        else 
-          Spy.get(CurrentClass).Methods.get(CurrentMethod).Local_vars.put(var, type);
+        }
+        else{
+          List<MethodInfo> methodlist = Spy.get(CurrentClass).Methods.get(CurrentMethod);
+          MethodInfo current = methodlist.get(methodlist.size() - 1);
+          if (current.Local_vars.containsKey(var))
+            throw new Exception("Duplicate local variable: " + var + " in method " + CurrentMethod);
 
-        // System.out.println(var + " " + type);
+          current.Local_vars.put(var, type);
+        } 
 
-        super.visit(n, argu);
         return _ret;
    }
 
@@ -137,7 +149,11 @@ class SpyVisitor extends GJDepthFirst<String, Void>{
         String myName = n.f2.accept(this, null);
 
         CurrentMethod = myName; 
-        Spy.get(CurrentClass).Methods.put(myName, new MethodInfo(myType));
+        if (!Spy.get(CurrentClass).Methods.containsKey(myName)) 
+          Spy.get(CurrentClass).Methods.put(myName, new ArrayList<>());
+
+        
+        Spy.get(CurrentClass).Methods.get(myName).add(new MethodInfo(myType));
 
         String argumentList = n.f4.present() ? n.f4.accept(this, null) : "";
         /* Double walk here maybe control my flow of execution */
@@ -193,8 +209,13 @@ class SpyVisitor extends GJDepthFirst<String, Void>{
     public String visit(FormalParameter n, Void argu) throws Exception{
         String type = n.f0.accept(this, null);
         String name = n.f1.accept(this, null);
-        
-        Spy.get(CurrentClass).Methods.get(CurrentMethod).Parameters.put(name, type);
+
+        List<MethodInfo> methodlist = Spy.get(CurrentClass).Methods.get(CurrentMethod);
+        MethodInfo current = methodlist.get(methodlist.size() - 1); 
+       
+        if (current.Parameters.containsKey(name)) 
+          throw new Exception("Duplicate parameter: " + name + " in method " + CurrentMethod);
+        current.Parameters.put(name, type);
 
         return type + " " + name;
     }
