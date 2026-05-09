@@ -20,10 +20,11 @@ public class Main {
 
       System.err.println("Program parsed successfully.");
 
-      SpyVisitor eval = new SpyVisitor();
-      root.accept(eval, null);
-      
-      System.out.println(eval.getSpy());
+      SpyVisitor spy = new SpyVisitor();
+      root.accept(spy, null);
+
+      SemAnalysisVisitor sem = new SemanticAnalysisVisitor(spy.getSpy()); 
+      root.accept(sem, null);
 
     } catch (ParseException ex) {
       System.out.println(ex.getMessage());

@@ -5,7 +5,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.ArrayList;
 
-class SpyVisitor extends GJDepthFirst<String, Void>{
+class SpyVisitor extends GJDepthFirst<String, Void> {
   private HashMap<String, ClassInfo> Spy = new HashMap<>();
   private String CurrentClass;
   private String CurrentMethod = null;
@@ -86,7 +86,7 @@ class SpyVisitor extends GJDepthFirst<String, Void>{
         if (Spy.containsKey(classname)) 
           throw new Exception("Dulicate class: " + classname);
 
-        Spyp.put(classname, new ClassInfo(parent_class));
+        Spy.put(classname, new ClassInfo(parent_class));
 
         n.f5.accept(this, argu);
         n.f6.accept(this, argu);
