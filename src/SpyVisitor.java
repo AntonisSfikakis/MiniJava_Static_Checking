@@ -83,8 +83,14 @@ class SpyVisitor extends GJDepthFirst<String, Void> {
         String parent_class = n.f3.accept(this, argu);
         
         CurrentClass = classname;
+
+        /* a extends b . b prepei na exei oristei */   
+        if (!Spy.containsKey(parent_class)) 
+          throw new Exception(" Class " + parent_class + " has not been declared"); 
+          
+ 
         if (Spy.containsKey(classname)) 
-          throw new Exception("Dulicate class: " + classname);
+          throw new Exception("Duplicate class: " + classname);
 
         Spy.put(classname, new ClassInfo(parent_class));
 

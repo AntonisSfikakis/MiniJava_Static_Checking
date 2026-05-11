@@ -23,7 +23,7 @@ public class Main {
       SpyVisitor spy = new SpyVisitor();
       root.accept(spy, null);
 
-      SemAnalysisVisitor sem = new SemanticAnalysisVisitor(spy.getSpy()); 
+      SemAnalysisVisitor sem = new SemAnalysisVisitor(spy.getSpy()); 
       root.accept(sem, null);
 
     } catch (ParseException ex) {
