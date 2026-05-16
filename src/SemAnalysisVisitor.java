@@ -42,8 +42,9 @@ class SemAnalysisVisitor extends  GJDepthFirst<String, Void> {
 
 
   }
-   /**
-
+  
+/*------------------------ClassInfo and MethodInfo declarartion-------------------------*/
+  /**
      * f0 -> "class"
      * f1 -> Identifier()
      * f2 -> "extends"
@@ -57,42 +58,172 @@ class SemAnalysisVisitor extends  GJDepthFirst<String, Void> {
   /*
    * Inheritence type checking.
    * */
-    @Override
-    public String visit(ClassExtendsDeclaration n, Void argu) throws Exception {
-        String classname = n.f1.accept(this, null);
-        String parent_class = n.f3.accept(this, argu);
-        
-        CurrentClass = classname;
+  @Override
+  public String visit(ClassExtendsDeclaration n, Void argu) throws Exception {
+      String classname = n.f1.accept(this, null);
+      String parent_class = n.f3.accept(this, argu);
       
-        String current = parent_class; 
-        while (current != null) {
-          if (current.equals(classname)) 
-            throw new Exception(" Class " + parent_class + " already extends " + classname);
-          current = symbolTable.get(current).Parent_class;
+      CurrentClass = classname;
+    
+      String current = parent_class; 
+      while (current != null) {
+        if (current.equals(classname)) 
+          throw new Exception(" Class " + parent_class + " already extends " + classname);
+        current = symbolTable.get(current).Parent_class;
 
-        }
+      }
 
+    return null;
+  }
+
+  /**
+   * Grammar production:
+   * f0 -> "class"
+   * f1 -> Identifier()
+   * f2 -> "{"
+   * f3 -> ( VarDeclaration() )*""
+   * f4 -> ( MethodDeclaration() )*
+   * f5 -> "}"
+   */
+  @Override
+  public String visit(ClassDeclaration n, Void argu) throws Exception {
+      String classname = n.f1.accept(this, null);
+      CurrentClass = classname;
+      n.f3.accept(this, null);
+      n.f4.accept(this, null);
       return null;
-    }
+
+  }
 
 
-    /* Variable Usage */
-/**
- * Grammar production:
- * f0 -> IntegerLiteral()
- *       | TrueLiteral()
- *       | FalseLiteral()
- *       | Identifier()
- *       | ThisExpression()
- *       | ArrayAllocationExpression()
- *       | AllocationExpression()
- *       | BracketExpression()
- */
+  /**
+   * Grammar production:
+   * f0 -> "public"
+   * f1 -> Type()
+   * f2 -> Identifier()
+   * f3 -> "("
+   * f4 -> ( FormalParameterList() )?
+   * f5 -> ")"
+   * f6 -> "{"
+   * f7 -> ( VarDeclaration() )*
+   * f8 -> ( Statement() )*
+   * f9 -> "return"
+   * f10 -> Expression()
+   * f11 -> ";"
+   * f12 -> "}"
+   */
+  @Override
+  public String visit(MethodDeclaration n, void argu) throws Exception {
+      
+     n.f4.accept(this, null);
+     n.f7.accept(this, null);
+     n.f8.accept(this, null);
+     n.f10.accept(this, null);
+     return null;
+  }
 
+
+
+/*-----------------------------Expression checking------------------------------------*/
+  @Override 
+  public String visit(PlusExpression n, Void argu) throws Exception {
+    String type1 = n.f0.accept(this, null);       
+    String type2 = n.f2.accept(this, null);       
+    
+    if (!type1.equals("int") || !type2.equals("int")) 
+      throw new Exception("Wrong types  in " + " expression " + type1 + type2);
+
+
+    return "int";
+  }
+
+  @Override 
+  public String visit(MinusExpression n, Void argu) throws Exception {
+    String type1 = n.f0.accept(this, null);       
+    String type2 = n.f2.accept(this, null);       
+    
+    if (!type1.equals("int") || !type2.equals("int")) 
+      throw new Exception("Wrong types  in " + " expression " + type1 + type2);
+
+
+    return "int";
+  }
+  
+  @Override 
+  public String visit(CompareExpression n, Void argu) throws Exception {
+    String type1 = n.f0.accept(this, null);       
+    String type2 = n.f2.accept(this, null);       
+    
+    if (!type1.equals("int") || !type2.equals("int")) 
+      throw new Exception("Wrong types  in " + " expression " + type1 + type2);
+
+
+    return "boolean";
+  }
  
+
+  @Override 
+  public String visit(TimesExpression n, Void argu) throws Exception {
+    String type1 = n.f0.accept(this, null);       
+    String type2 = n.f2.accept(this, null);       
+    
+    if (!type1.equals("int") || !type2.equals("int")) 
+      throw new Exception("Wrong types  in " + " expression " + type1 + type2);
+
+
+    return "int";
+  }
+ 
+  /**
+   * Grammar production:
+   * f0 -> "!"
+   * f1 -> Clause()
+   */
+  @Override 
+  public String visit(NotExpression n, Void argu) throws Exception {
+    String clause = n.f1.accept(this, null);
+    if (!clause.equals("boolean"))
+      throw new Exception("Not expression should return a boolean");
+
+    return "boolean";
+  }
+
+  /**
+   * Grammar production:
+   * f0 -> Clause()
+   * f1 -> "&&"
+   * f2 -> Clause()
+   */
+
+  @Override 
+  public String visit(AndExpression n, Void argu) throws Exception {
+   String clause1 = n.f0.accept(this, null);   
+   String clause2 = n.f2.accept(this, null);   
+
+   if (!clause1.equals("boolean") || !clause2.equals("boolean"))
+      throw new Exception("AND expression should return a boolean");
+
+   return "boolean";
+  
+  }
+
+ /*---------------------------Leafes literals-------------------------------------------*/ 
+  /**
+   * Grammar production:
+   * f0 -> IntegerLiteral()
+   *       | TrueLiteral()
+   *       | FalseLiteral()
+   *       | Identifier()
+   *       | ThisExpression()
+   *       | ArrayAllocationExpression()
+   *       | AllocationExpression()
+   *       | BracketExpression()
+   */
+
+   
  
    @Override 
-   public String visit(PrimaryExpression n, Void argu) {
+   public String visit(PrimaryExpression n, Void argu) throws Exception {
     isVariable = true;
     String id  = n.f0.accept(this, argu);
     isVariable = false;
@@ -120,13 +251,14 @@ class SemAnalysisVisitor extends  GJDepthFirst<String, Void> {
    }
 
    @Override
-   public String visit(Identifier n, Void argu) {
+   public String visit(Identifier n, Void argu) throws Exception {
      String name = n.f0.toString();
      if (isVariable)
        return LookupType(name);
 
      return name;
     }
+  
   /**
   * Grammar production:
   * f0 -> "new"
@@ -154,9 +286,9 @@ class SemAnalysisVisitor extends  GJDepthFirst<String, Void> {
   */
 
    @Override
-   public String visit(AllocationExpression n, Void argu) {
+   public String visit(AllocationExpression n, Void argu) throws Excpetion {
     isVariable = false;
-    string id  = n.f1.accept(this, null);
+    String id  = n.f1.accept(this, null);
     isVariable = true;
     return id; 
 
