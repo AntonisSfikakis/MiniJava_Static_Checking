@@ -137,6 +137,127 @@ class SemAnalysisVisitor extends  GJDepthFirst<String, Void> {
      return null;
   }
 
+/*-----------------------------Statement checking-------------------------------------*/
+
+  /**
+   * Grammar production:
+   * f0 -> Identifier()
+   * f1 -> "="
+   * f2 -> Expression()
+   * f3 -> ";"
+   */
+  @Override
+  public String visit(AssignmentStatement n, Void argu) throws Exception {
+    String variableName  = n.f0.accept(this, null);     
+    String left  = LookupType(variableName);
+    String right = n.f2.accept(this, null);
+    
+    if (!left.equals(right))
+      throw new Exception(left + " is different type : " + right);
+
+    return  left;
+  }
+
+  /**
+   * Grammar production:
+   * f0 -> Identifier()
+   * f1 -> "["
+   * f2 -> Expression()
+   * f3 -> "]"
+   * f4 -> "="
+   * f5 -> Expression()
+   * f6 -> ";"
+   */
+  @Override
+  public String visit(ArrayAssignmentStatement n, Void argu) throws Exception {
+    String variableName  = n.f0.accept(this, null);     
+    String left  = LookupType(variableName);
+    String index = n.f2.accept(this, null);
+    String right = n.f5.accept(this, null);
+
+    if (!index.equals("int") || !left.equals("int[]") || !right.equals("int")) 
+      throw new Exception("Exceptino rasied in : " + left + " " + index + " " + right);
+    return "int";
+ 
+   }
+
+  /**
+   * Grammar production:
+   * f0 -> "if"
+   * f1 -> "("
+   * f2 -> Expression()
+   * f3 -> ")"
+   * f4 -> Statement()
+   * f5 -> "else"
+   * f6 -> Statement()
+   */
+  @Override
+  public String visit(IfStatement n, Void argu) throws Exception {
+    String condition = n.f2.accept(this, null);
+    
+    if (!condition.equals("boolean"))
+      throw new Exception("Wrong condition in if statement")
+    
+    String Statement = n.f4.accept(this, null);
+    String Statement = n.f6.accept(this, null);
+
+    return null; 
+   }
+  /**
+   * Grammar production:
+   * f0 -> "System.out.println"
+   * f1 -> "("
+   * f2 -> Expression()
+   * f3 -> ")"
+   * f4 -> ";"
+   */
+
+  @Override
+  public String visit(PrintStatement n, Void argu) throws Exception {
+    String expression = n.f2.accept(this, null);
+    if (!expression.equals("int"))
+      throw new Exception("System.out.println accepts only in");
+
+    return null; 
+   }
+
+  /**
+   * Grammar production:
+   * f0 -> "while"
+   * f1 -> "("
+   * f2 -> Expression()
+   * f3 -> ")"
+   * f4 -> Statement()
+   */
+  @Override
+  public String visit(WhileStatement n, Void argu) throws Exception {
+    String condition = n.f2.accept(this, null);
+    
+    if (!condition.equals("boolean"))
+      throw new Exception("Wrong condition in while statement");
+    
+    String Statement = n.f4.accept(this, null);
+    return null; 
+   }
+
+
+
+
+  /**
+   * Grammar production:
+   * f0 -> PrimaryExpression()
+   * f1 -> "."
+   * f2 -> Identifier()
+   * f3 -> "("
+   * f4 -> ( ExpressionList() )?
+   * f5 -> ")"
+   */
+  @Override
+  public String visit(MessageSend n, Void argu) throws Exception {
+     
+
+  }
+ 
 
 
 /*-----------------------------Expression checking------------------------------------*/
@@ -264,7 +385,7 @@ class SemAnalysisVisitor extends  GJDepthFirst<String, Void> {
    *       | FalseLiteral()
    *       | Identifier()
    *       | ThisExpression()
-   *       | ArrayAllocationExpression()
+   *       <IDENTIFIER>| ArrayAllocationExpression()
    *       | AllocationExpression()
    *       | BracketExpression()
    */
