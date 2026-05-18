@@ -12,6 +12,7 @@ class SemAnalysisVisitor extends  GJDepthFirst<String, Void> {
   private String CurrentMethod = null;
   private MethodInfo CurrentMethodInfo = null;
   private boolean isVariable = false;
+  private HashMap<String, Integer> methodIndex  =  new HashMap<>(); 
   public  SemAnalysisVisitor(HashMap<String, ClassInfo> Spy) {
     this.symbolTable = Spy;
  }
@@ -64,7 +65,8 @@ class SemAnalysisVisitor extends  GJDepthFirst<String, Void> {
       String parent_class = n.f3.accept(this, argu);
       
       CurrentClass = classname;
-    
+      methodIndex.clear();
+
       String current = parent_class; 
       while (current != null) {
         if (current.equals(classname)) 
@@ -73,6 +75,9 @@ class SemAnalysisVisitor extends  GJDepthFirst<String, Void> {
 
       }
 
+      n.f5.accept(this, null);
+      n.f6.accept(this, null);
+        
     return null;
   }
 
@@ -89,6 +94,7 @@ class SemAnalysisVisitor extends  GJDepthFirst<String, Void> {
   public String visit(ClassDeclaration n, Void argu) throws Exception {
       String classname = n.f1.accept(this, null);
       CurrentClass = classname;
+      methodIndex.clear();
       n.f3.accept(this, null);
       n.f4.accept(this, null);
       return null;
@@ -113,8 +119,17 @@ class SemAnalysisVisitor extends  GJDepthFirst<String, Void> {
    * f12 -> "}"
    */
   @Override
-  public String visit(MethodDeclaration n, void argu) throws Exception {
+  public String visit(MethodDeclaration n, Void argu) throws Exception {
+     String methodname =  n.f2.accept(this, null);
+     if (methodIndex.containsKey(methodname)) 
+       methodIndex.put(methodname, methodIndex.get(methodname) + 1);
+     else 
+       methodIndex.put(methodname, 0);
       
+     /* Store by order , return the last one in the list */
+     int index  = methodIndex.get(methodname);
+     CurrentMethodInfo = symbolTable.get(CurrentClass).Methods.get(methodname).get(index);
+     
      n.f4.accept(this, null);
      n.f7.accept(this, null);
      n.f8.accept(this, null);
@@ -207,6 +222,40 @@ class SemAnalysisVisitor extends  GJDepthFirst<String, Void> {
   
   }
 
+  /**
+   * Grammar production:
+   * f0 -> PrimaryExpression()
+   * f1 -> "["
+   * f2 -> PrimaryExpression()
+   * f3 -> "]"
+   */
+  @Override
+  public String visit(ArrayLookup n, Void argu) throws Exception {
+    String array = n.f0.accept(this, null);
+    String index = n.f2.accept(this, null);
+
+    if (!(index.equals("int") && array.equals("int[]"))) 
+      throw new Exception("Wrong type in " + array + " " + index + " ");
+
+    return "int";
+  }
+
+
+  /**
+   * Grammar production:
+   * f0 -> PrimaryExpression()
+   * f1 -> "."
+   * f2 -> "length"
+   */
+  @Override
+  public String visit(ArrayLength n, Void argu) throws Exception {
+    String array = n.f0.accept(this, null);
+    if (!array.equals("int[]"))
+      throw new Exception(array + " needs to be type int");
+
+    return "int";
+  }
+ 
  /*---------------------------Leafes literals-------------------------------------------*/ 
   /**
    * Grammar production:
@@ -286,7 +335,7 @@ class SemAnalysisVisitor extends  GJDepthFirst<String, Void> {
   */
 
    @Override
-   public String visit(AllocationExpression n, Void argu) throws Excpetion {
+   public String visit(AllocationExpression n, Void argu) throws Exception {
     isVariable = false;
     String id  = n.f1.accept(this, null);
     isVariable = true;
@@ -295,7 +344,7 @@ class SemAnalysisVisitor extends  GJDepthFirst<String, Void> {
    }
  
   @Override
-  public String visit(BracketExpression n, Void argu) {
+  public String visit(BracketExpression n, Void argu) throws Exception{
     return n.f1.accept(this, null);
 
   }
