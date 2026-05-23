@@ -3,6 +3,7 @@ import visitor.*;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.beans.Expression;
 import java.util.ArrayList;
 
 
@@ -13,6 +14,7 @@ class SemAnalysisVisitor extends  GJDepthFirst<String, Void> {
   private MethodInfo CurrentMethodInfo = null;
   private boolean isVariable = false;
   private HashMap<String, Integer> methodIndex  =  new HashMap<>(); 
+
   public  SemAnalysisVisitor(HashMap<String, ClassInfo> Spy) {
     this.symbolTable = Spy;
  }
@@ -35,14 +37,58 @@ class SemAnalysisVisitor extends  GJDepthFirst<String, Void> {
     while (current != null) {
       if (symbolTable.get(current).Field.containsKey(var))
         return symbolTable.get(current).Field.get(var);
-
-       current = symbolTable.get(current).Parent_class;
-    } 
+      
+      current = symbolTable.get(current).Parent_class;
+      } 
 
     throw new Exception("Variable: " + var + " has not beed declared" ); 
 
 
   }
+
+  private  boolean IsPrimitive(String type) {
+    return type.equals("int") || type.equals("int[]") || type.equals("boolean");
+  }
+
+  private boolean LookupFather(String _class, String father) {
+     if (_class.equals(father))
+       return true;
+
+       System.out.println("I am here in father");
+
+     String current = symbolTable.get(_class).Parent_class;
+     while (current != null) {
+       if (current.equals(father)) return true;
+
+       current = symbolTable.get(current).Parent_class;
+     }  
+
+     return false;
+  }
+
+  private List<MethodInfo> LookupFatherMethod(String _class, String method) {
+     if (symbolTable.get(_class).Methods.containsKey(method))
+        return symbolTable.get(_class).Methods.get(method);
+
+       System.out.println("I am here");
+
+     String current = symbolTable.get(_class).Parent_class;
+     while (current != null) {
+       List<MethodInfo> methodlist = symbolTable.get(current).Methods.get(method);
+       if (methodlist != null)
+          return methodlist;
+
+
+       System.out.println("I am here");
+
+
+       current = symbolTable.get(current).Parent_class;
+
+     }  
+
+     return null;
+  }
+  
   
 /*------------------------ClassInfo and MethodInfo declarartion-------------------------*/
   /**
@@ -61,16 +107,19 @@ class SemAnalysisVisitor extends  GJDepthFirst<String, Void> {
    * */
   @Override
   public String visit(ClassExtendsDeclaration n, Void argu) throws Exception {
+      isVariable = false;
       String classname = n.f1.accept(this, null);
       String parent_class = n.f3.accept(this, argu);
       
       CurrentClass = classname;
       methodIndex.clear();
-
+      
+      /* Legit extend */
       String current = parent_class; 
       while (current != null) {
         if (current.equals(classname)) 
           throw new Exception(" Class " + parent_class + " already extends " + classname);
+
         current = symbolTable.get(current).Parent_class;
 
       }
@@ -92,13 +141,15 @@ class SemAnalysisVisitor extends  GJDepthFirst<String, Void> {
    */
   @Override
   public String visit(ClassDeclaration n, Void argu) throws Exception {
+      isVariable = false;
       String classname = n.f1.accept(this, null);
       CurrentClass = classname;
       methodIndex.clear();
+
       n.f3.accept(this, null);
       n.f4.accept(this, null);
-      return null;
 
+   return null;
   }
 
 
@@ -120,6 +171,8 @@ class SemAnalysisVisitor extends  GJDepthFirst<String, Void> {
    */
   @Override
   public String visit(MethodDeclaration n, Void argu) throws Exception {
+     isVariable = false;
+     n.f1.accept(this, null);
      String methodname =  n.f2.accept(this, null);
      if (methodIndex.containsKey(methodname)) 
        methodIndex.put(methodname, methodIndex.get(methodname) + 1);
@@ -130,12 +183,29 @@ class SemAnalysisVisitor extends  GJDepthFirst<String, Void> {
      int index  = methodIndex.get(methodname);
      CurrentMethodInfo = symbolTable.get(CurrentClass).Methods.get(methodname).get(index);
      
-     n.f4.accept(this, null);
-     n.f7.accept(this, null);
+     isVariable = true;
+    
      n.f8.accept(this, null);
      n.f10.accept(this, null);
+     isVariable = false;
+
      return null;
   }
+/*-----------------------------Variable Declaration-----------------------------------*/
+  /**
+   * Grammar production:
+   * f0 -> Type()
+   * f1 -> Identifier()
+   * f2 -> ";"
+   */
+  @Override
+  public String visit(VarDeclaration n, Void argu) throws Exception {
+    isVariable = false;
+    n.f0.accept(this, null);
+    n.f1.accept(this, null);
+
+    return null;
+  } 
 
 /*-----------------------------Statement checking-------------------------------------*/
 
@@ -148,8 +218,7 @@ class SemAnalysisVisitor extends  GJDepthFirst<String, Void> {
    */
   @Override
   public String visit(AssignmentStatement n, Void argu) throws Exception {
-    String variableName  = n.f0.accept(this, null);     
-    String left  = LookupType(variableName);
+    String left = n.f0.accept(this, null);     
     String right = n.f2.accept(this, null);
     
     if (!left.equals(right))
@@ -170,8 +239,7 @@ class SemAnalysisVisitor extends  GJDepthFirst<String, Void> {
    */
   @Override
   public String visit(ArrayAssignmentStatement n, Void argu) throws Exception {
-    String variableName  = n.f0.accept(this, null);     
-    String left  = LookupType(variableName);
+    String left = n.f0.accept(this, null);     
     String index = n.f2.accept(this, null);
     String right = n.f5.accept(this, null);
 
@@ -196,10 +264,10 @@ class SemAnalysisVisitor extends  GJDepthFirst<String, Void> {
     String condition = n.f2.accept(this, null);
     
     if (!condition.equals("boolean"))
-      throw new Exception("Wrong condition in if statement")
+      throw new Exception("Wrong condition in if statement");
     
     String Statement = n.f4.accept(this, null);
-    String Statement = n.f6.accept(this, null);
+    String Statement_else = n.f6.accept(this, null);
 
     return null; 
    }
@@ -249,15 +317,97 @@ class SemAnalysisVisitor extends  GJDepthFirst<String, Void> {
    * f1 -> "."
    * f2 -> Identifier()
    * f3 -> "("
-   * f4 -> ( ExpressionList() )?
+  * f4 -> ( ExpressionList() )?
    * f5 -> ")"
    */
   @Override
   public String visit(MessageSend n, Void argu) throws Exception {
-     
+    /*  Primary expression should be a class */
+    /*  class_type.method(input)                */
+    String _class = n.f0.accept(this, null); 
+    if (IsPrimitive(_class)) 
+      throw new Exception(_class + " should be a class type");
 
+    isVariable = false;
+    String method = n.f2.accept(this, null);
+    isVariable = true;
+
+    /* method call should belong to the class */
+    List<MethodInfo> methodlist = LookupFatherMethod(_class, method);
+    if (methodlist == null)
+        throw new Exception("ERROR " + _class + " " + method);
+
+
+    String arg = n.f4.accept(this, null);
+    System.out.println(arg);
+    String[] args;
+    if (arg == null || arg.equals(""))
+      args = new String[0];
+   else 
+      args = arg.split(",");
+
+    /** arg = [int, boolean, A]
+     * method = [int, boolean, B] 
+     * this is correct if B extends A -> A is parent of B
+     */
+
+    /* for each method that matches we should check its type or a super/subtype relation */
+    /* Iterate trough the method list */
+    for (MethodInfo Method : methodlist) {
+      boolean match = false;
+      String[] parameters = Method.Parameters.values().toArray(new String[0]);
+
+      if (args.length != parameters.length) continue;
+      if (args.length == 0 && parameters.length == 0)
+          return Method.Return_type;
+
+      for (int i = 0; i < parameters.length; i++) {
+        // check if there is super/subtype relation
+        if (!IsPrimitive(args[i]) && LookupFather(args[i], parameters[i])) continue;
+        if (!parameters[i].equals(args[i])) break; 
+        if (i == parameters.length - 1) match = true;
+      }
+
+      if (match) 
+          return Method.Return_type;
+    }
+
+    throw new Exception("ERROR " + _class + "." + method + "()");
   }
- 
+
+  /**
+   * f0 -> Expression()
+   * f1 -> ExpressionTail()
+   */
+  @Override
+  public String visit(ExpressionList n, Void argu) throws Exception {
+    /* a type will be returned */
+    String first_arg = n.f0.accept(this, null);
+     
+    if ( n.f1 != null) 
+      return first_arg += n.f1.accept(this, null);;
+
+    return first_arg;
+  }
+
+  /**
+   * f0 -> (ExpressionTerm())*
+   */
+
+  @Override
+  public String visit(ExpressionTail n, Void argu) throws Exception {
+     String ret = ""; 
+     for ( Node node: n.f0.nodes) {
+          ret += "," + node.accept(this, null);
+     }
+
+    return ret;
+  }
+
+  @Override
+  public String visit(ExpressionTerm n, Void argu) throws Exception {
+    return n.f1.accept(this, null); 
+  }
 
 
 /*-----------------------------Expression checking------------------------------------*/
@@ -272,6 +422,8 @@ class SemAnalysisVisitor extends  GJDepthFirst<String, Void> {
 
     return "int";
   }
+
+
 
   @Override 
   public String visit(MinusExpression n, Void argu) throws Exception {
@@ -459,6 +611,8 @@ class SemAnalysisVisitor extends  GJDepthFirst<String, Void> {
    public String visit(AllocationExpression n, Void argu) throws Exception {
     isVariable = false;
     String id  = n.f1.accept(this, null);
+    if (!symbolTable.containsKey(id))
+      throw new Exception("Class " + id + " does not exitst");
     isVariable = true;
     return id; 
 
