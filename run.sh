@@ -1,4 +1,4 @@
 make;
 cd build; 
-java Main ../src/test/ErrorMessage/*.java 
+java Main ../src/test/Return/*.java 
 cd ..;
