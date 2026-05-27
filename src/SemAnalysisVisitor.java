@@ -1,4 +1,5 @@
 import java.beans.Expression;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -64,7 +65,10 @@ class SemAnalysisVisitor extends GJDepthFirst<String, Void> {
 
     return false;
   }
-
+ 
+  /*
+   * This function gets a class and a method na looks up if a father has it too.
+   * */
   private List<MethodInfo> LookupFatherMethod(String _class, String method) {
     if (symbolTable.get(_class).Methods.containsKey(method))
       return symbolTable.get(_class).Methods.get(method);
@@ -88,6 +92,49 @@ class SemAnalysisVisitor extends GJDepthFirst<String, Void> {
     if (IsPrimitive(from) || IsPrimitive(to))
       return false;
     return LookupFather(from, to);
+  }
+
+  private boolean CheckOverride(String methodname) {
+    /**
+     * for this method -> take the args
+     * CurrentCLassMethod has the method 
+     */
+    if (CurrentMethodInfo  == null)
+      System.out.println("CurrentMethod info is null something is wrong here.");
+
+    String parent = symbolTable.get(CurrentClass).Parent_class;
+    if (parent == null) return true;
+
+    List<MethodInfo> parent_methods = LookupFatherMethod(parent, methodname);
+    if (parent_methods == null) return true;
+
+    String[] Method_args = CurrentMethodInfo.Parameters.values().toArray(new String[0]);
+    /* now i have to iterate the list an check if they have exact the same type */      
+    for (MethodInfo method : parent_methods) {
+        String[] parameters = method.Parameters.values().toArray(new String[0]);
+        boolean match = false; 
+        if (parameters.length != Method_args.length) continue;
+
+        if (Method_args.length == 0) {
+           if (!CurrentMethodInfo.Return_type.equals(method.Return_type))
+             return false;
+           else return true;
+        } 
+
+        for (int i = 0; i < Method_args.length; i++) {
+          if (!Method_args[i].equals(parameters[i])) break; 
+          if (i == Method_args.length - 1) match = true; 
+        }
+        
+        if (match) {
+          if (!CurrentMethodInfo.Return_type.equals(method.Return_type))
+            return false;
+          else return true;
+        }
+
+    }
+    return true;
+    
   }
 
   /*------------------------ClassInfo and MethodInfo
@@ -180,10 +227,14 @@ class SemAnalysisVisitor extends GJDepthFirst<String, Void> {
     else
       methodIndex.put(methodname, 0);
 
+ 
     /* Store by order , return the last one in the list */
     int index = methodIndex.get(methodname);
     CurrentMethodInfo =
         symbolTable.get(CurrentClass).Methods.get(methodname).get(index);
+    
+    if (!CheckOverride(methodname))
+      throw new Exception("Override fucntion: " + methodname + " should have the same return type as its parent of its class");
 
     isVariable = true;
 
@@ -199,8 +250,8 @@ class SemAnalysisVisitor extends GJDepthFirst<String, Void> {
      return null;
   }
 
-  /*-----------------------------Variable
-   * Declaration-----------------------------------*/
+  /*-----------------------------Variable Declaration-----------------------------------*/
+
   /**
    * Grammar production:
    * f0 -> Type()
@@ -216,8 +267,7 @@ class SemAnalysisVisitor extends GJDepthFirst<String, Void> {
     return null;
   }
 
-  /*-----------------------------Statement
-   * checking-------------------------------------*/
+  /*-----------------------------Statement checking-------------------------------------*/
 
   /**
    * Grammar production:
