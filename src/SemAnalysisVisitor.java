@@ -67,23 +67,22 @@ class SemAnalysisVisitor extends GJDepthFirst<String, Void> {
   }
  
   /*
-   * This function gets a class and a method na looks up if a father has it too.
+   * This functions get a class and a method and creats a big list of all methods of his fathers
+   * 
    * */
-  private List<MethodInfo> LookupFatherMethod(String _class, String method) {
-    if (symbolTable.get(_class).Methods.containsKey(method))
-      return symbolTable.get(_class).Methods.get(method);
+  private List<MethodInfo> GetAllMethods(String _class, String method) {
+    List<MethodInfo> all_methods = new ArrayList<>();
 
-    String current = symbolTable.get(_class).Parent_class;
+    String current = _class;
     while (current != null) {
-      List<MethodInfo> methodlist =
-          symbolTable.get(current).Methods.get(method);
-      if (methodlist != null)
-        return methodlist;
+      List<MethodInfo> methodlist = symbolTable.get(current).Methods.get(method);
+      if (methodlist != null) 
+        all_methods.addAll(methodlist);
 
       current = symbolTable.get(current).Parent_class;
     }
 
-    return null;
+    return all_methods.isEmpty() ? null : all_methods; 
   }
 
   private boolean isCompatible(String from, String to) {
@@ -105,7 +104,7 @@ class SemAnalysisVisitor extends GJDepthFirst<String, Void> {
     String parent = symbolTable.get(CurrentClass).Parent_class;
     if (parent == null) return true;
 
-    List<MethodInfo> parent_methods = LookupFatherMethod(parent, methodname);
+    List<MethodInfo> parent_methods = GetAllMethods(parent, methodname);
     if (parent_methods == null) return true;
 
     String[] Method_args = CurrentMethodInfo.Parameters.values().toArray(new String[0]);
@@ -133,9 +132,57 @@ class SemAnalysisVisitor extends GJDepthFirst<String, Void> {
         }
 
     }
+
     return true;
-    
   }
+
+  private boolean CheckOverload(String methodname) throws  Exception {
+    /*
+     * for each method of the  i have to compare thy type with the method name. If there is no realationship
+     * everything okay i should move. If everyone has some kond -> error
+     * */
+
+    List<MethodInfo> methodlist = GetAllMethods(CurrentClass, methodname);
+    String[] Method_args = CurrentMethodInfo.Parameters.values().toArray(new String[0]);
+    for (MethodInfo method : methodlist) {
+      String[] parameters = method.Parameters.values().toArray(new String[0]);
+      if (method == CurrentMethodInfo) continue;
+
+      if (parameters.length != Method_args.length) continue;
+      boolean all_comp = true;
+      for (int i = 0; i < parameters.length; i++) {
+         if (!isCompatible(parameters[i], Method_args[i]) && !isCompatible(Method_args[i], parameters[i])) {
+           all_comp = false;
+           break;
+         }
+
+      }
+
+      if (all_comp) {
+        boolean all_exact = true;
+        for (int i = 0; i < parameters.length; i++) {
+          if (!parameters[i].equals(Method_args[i])) {
+            all_exact = false;
+            break;
+          }
+        }
+
+        if (all_exact) {
+          List<MethodInfo> currentMethods = symbolTable.get(CurrentClass).Methods.get(methodname);
+          if (currentMethods != null && currentMethods.contains(method))
+            /* exact same , duplicate inside the same function */
+            return false;
+         /* its an override */ 
+          continue; 
+        }
+        
+        return false;
+      }
+    }
+
+    return true;
+  }
+  
 
   /*------------------------ClassInfo and MethodInfo
    * declarartion-------------------------*/
@@ -235,6 +282,10 @@ class SemAnalysisVisitor extends GJDepthFirst<String, Void> {
     
     if (!CheckOverride(methodname))
       throw new Exception("Override fucntion: " + methodname + " should have the same return type as its parent of its class");
+
+    if (!CheckOverload(methodname))
+      throw new Exception(methodname + " ambiguity problem. This functions might be declared again with exact a same argumetn or they have a  super/subtype relationship");
+
 
     isVariable = true;
 
@@ -394,7 +445,7 @@ class SemAnalysisVisitor extends GJDepthFirst<String, Void> {
     isVariable = true;
 
     /* method call should belong to the class */
-    List<MethodInfo> methodlist = LookupFatherMethod(_class, method);
+    List<MethodInfo> methodlist = GetAllMethods(_class, method);
     if (methodlist == null)
       throw new Exception("ERROR " + _class + " " + method);
 

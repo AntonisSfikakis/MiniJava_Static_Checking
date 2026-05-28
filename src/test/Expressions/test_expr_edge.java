@@ -47,7 +47,7 @@ class A {
     int result;
     arr = new int[10];
     arr[0] = 5;
-    result = arr[0] + 1;
+    result = (arr[0]) + 1;
     return result;
   }
 
