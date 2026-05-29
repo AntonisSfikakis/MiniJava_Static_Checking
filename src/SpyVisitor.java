@@ -6,10 +6,10 @@ import java.util.List;
 import java.util.ArrayList;
 
 class SpyVisitor extends GJDepthFirst<String, Void> {
-  private HashMap<String, ClassInfo> Spy = new HashMap<>();
+  private LinkedHashMap<String, ClassInfo> Spy = new LinkedHashMap<>();
   private String CurrentClass;
   private String CurrentMethod = null;
-  public HashMap<String, ClassInfo> getSpy() {
+  public LinkedHashMap<String, ClassInfo> getSpy() {
     return Spy;
   }
    /**

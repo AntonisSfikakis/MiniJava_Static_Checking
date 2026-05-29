@@ -11,14 +11,14 @@ import syntaxtree.*;
 import visitor.*;
 
 class SemAnalysisVisitor extends GJDepthFirst<String, Void> {
-  private HashMap<String, ClassInfo> symbolTable;
+  private LinkedHashMap<String, ClassInfo> symbolTable;
   private String CurrentClass;
   private String CurrentMethod = null;
   private MethodInfo CurrentMethodInfo = null;
   private boolean isVariable = false;
   private HashMap<String, Integer> methodIndex = new HashMap<>();
 
-  public SemAnalysisVisitor(HashMap<String, ClassInfo> Spy) {
+  public SemAnalysisVisitor(LinkedHashMap<String, ClassInfo> Spy) {
     this.symbolTable = Spy;
   }
 

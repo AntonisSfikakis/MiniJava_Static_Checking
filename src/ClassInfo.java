@@ -7,13 +7,13 @@ import  java.util.List;
  */
 
 public class ClassInfo {
-  public HashMap<String, String> Field;
-  public HashMap<String, List<MethodInfo>> Methods;
+  public LinkedHashMap<String, String> Field;
+  public LinkedHashMap<String, List<MethodInfo>> Methods;
   public String Parent_class;
 
   public ClassInfo (String parent_class) {
-    this.Field = new HashMap<>();
-    this.Methods = new HashMap<>();
+    this.Field = new LinkedHashMap<>();
+    this.Methods = new LinkedHashMap<>();
     this.Parent_class = parent_class; 
   }
  

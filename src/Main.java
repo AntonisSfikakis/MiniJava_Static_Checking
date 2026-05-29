@@ -28,6 +28,9 @@ public class Main {
         SemAnalysisVisitor sem = new SemAnalysisVisitor(spy.getSpy());
         root.accept(sem, null);
 
+        OffsetCalculator off = new OffsetCalculator(spy.getSpy());
+        off.calculate();
+
       } catch (ParseException ex) {
         System.out.println(ex.getMessage());
 
