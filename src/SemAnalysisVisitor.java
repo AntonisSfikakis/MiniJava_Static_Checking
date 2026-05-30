@@ -182,7 +182,44 @@ class SemAnalysisVisitor extends GJDepthFirst<String, Void> {
 
     return true;
   }
-  
+ 
+  /* Main class Override */
+
+  /**
+   * Grammar production:
+   * f0 -> "class"
+   * f1 -> Identifier()
+   * f2 -> "{"
+   * f3 -> "public"
+   * f4 -> "static"
+   * f5 -> "void"
+   * f6 -> "main"
+   * f7 -> "("
+   * f8 -> "String"
+   * f9 -> "["
+   * f10 -> "]"
+   * f11 -> Identifier()
+   * f12 -> ")"
+   * f13 -> "{"
+   * f14 -> ( VarDeclaration() )*
+   * f15 -> ( Statement() )*
+   * f16 -> "}"
+   * f17 -> "}"
+   */
+
+  @Override 
+  public String visit(MainClass n, Void argu) throws Exception {
+    isVariable = false;
+    CurrentClass =  n.f1.accept(this , null); 
+    List<MethodInfo> mainlist = symbolTable.get(CurrentClass).Methods.get("main");
+    CurrentMethodInfo = mainlist.get(0);
+
+    isVariable = true;
+    n.f15.accept(this, null);
+    isVariable = false;
+    
+    return null;
+  }
 
   /*------------------------ClassInfo and MethodInfo
    * declarartion-------------------------*/
@@ -314,6 +351,7 @@ class SemAnalysisVisitor extends GJDepthFirst<String, Void> {
     isVariable = false;
     n.f0.accept(this, null);
     n.f1.accept(this, null);
+
 
     return null;
   }

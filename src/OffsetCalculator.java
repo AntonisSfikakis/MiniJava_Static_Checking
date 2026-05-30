@@ -5,6 +5,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.HashSet;
 import java.util.Set;
+
+import javax.swing.text.StyledEditorKit.BoldAction;
+
 import java.util.AbstractMap;
 
 
@@ -23,12 +26,13 @@ class OffsetCalculator {
   protected void calculate()  {
     int field_offset = 0; 
     int method_offset = 0;
+    boolean isMain = true; 
 
     for (String _class : offset_table.keySet()) {
         ClassInfo current = offset_table.get(_class);
         System.out.println("------------Class " + _class + " --------------");
-        if (current.Parent_class == null && current.Field.isEmpty() && current.Methods.isEmpty()) 
-          continue;
+
+        if (isMain) { isMain = false; continue;}
         
         Set<String> s;
         if (current.Parent_class != null && Over_load_ride_check.containsKey(current.Parent_class)) 

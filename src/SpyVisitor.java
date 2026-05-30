@@ -12,6 +12,8 @@ class SpyVisitor extends GJDepthFirst<String, Void> {
   public LinkedHashMap<String, ClassInfo> getSpy() {
     return Spy;
   }
+
+  
    /**
      * f0 -> "class"
      * f1 -> Identifier()
@@ -37,13 +39,20 @@ class SpyVisitor extends GJDepthFirst<String, Void> {
         String classname = n.f1.accept(this, null);
         ClassInfo a = new ClassInfo(null);
         Spy.put(classname, a);
-         
+       
+        CurrentClass  = classname;
+        CurrentMethod = "main";
+        Spy.get(CurrentClass).Methods.put("main", new ArrayList<>());
+        Spy.get(CurrentClass).Methods.get("main").add(new MethodInfo("void"));      
+
+        n.f14.accept(this, null);
+        CurrentMethod = null;
         return null;
     }
 
     /*NOT DONE*/
 
-    /**
+    /*Lj*
      * f0 -> "class"
      * f1 -> Identifier()
      * f2 -> "{"
@@ -125,9 +134,8 @@ class SpyVisitor extends GJDepthFirst<String, Void> {
         else{
           List<MethodInfo> methodlist = Spy.get(CurrentClass).Methods.get(CurrentMethod);
           MethodInfo current = methodlist.get(methodlist.size() - 1);
-          if (current.Local_vars.containsKey(var))
+          if (current.Local_vars.containsKey(var) || current.Parameters.containsKey(var))
             throw new Exception("Duplicate local variable: " + var + " in method " + CurrentMethod);
-
           current.Local_vars.put(var, type);
         } 
 

@@ -12,7 +12,9 @@ public class Main {
     }
     int files = args.length;
     for (int j = 0; j < files; j++) {
-      System.out.println("-------------------------file input : " + args[j] + "-------------------------");
+      System.out.println(); 
+
+      System.out.println("------------------------- file input : " + args[j] + " -------------------------");
       FileInputStream fis = null; 
       try {
         fis = new FileInputStream(args[j]);
@@ -30,6 +32,9 @@ public class Main {
 
         OffsetCalculator off = new OffsetCalculator(spy.getSpy());
         off.calculate();
+
+        System.out.println("------------------------- END OF FILE -------------------------");       
+        System.out.println();
 
       } catch (ParseException ex) {
         System.out.println(ex.getMessage());
