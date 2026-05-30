@@ -30,9 +30,13 @@ class OffsetCalculator {
 
     for (String _class : offset_table.keySet()) {
         ClassInfo current = offset_table.get(_class);
+        if (isMain) {
+          isMain = false; 
+          class_offsets.put(_class, new Pair(0, 0));
+          continue;
+        }
+       
         System.out.println("------------Class " + _class + " --------------");
-
-        if (isMain) { isMain = false; continue;}
         
         Set<String> s;
         if (current.Parent_class != null && Over_load_ride_check.containsKey(current.Parent_class)) 
@@ -48,7 +52,7 @@ class OffsetCalculator {
         } 
       
         /*---------Field_Calculation----------*/
-        System.out.println("------------ Variables ------------");
+        System.out.println("---Variables------------");
         for (String _field : current.Field.keySet()) {
           int bytes = CalculateBytes(current.Field.get(_field));
           System.out.println(_class + "." + _field + " : " + field_offset);
@@ -56,7 +60,7 @@ class OffsetCalculator {
         }
       
         /*---------Method_Calculation----------*/
-        System.out.println("------------ Methods ------------");
+        System.out.println("---Methods------------");
         for (String _method : current.Methods.keySet()) {
           List<MethodInfo>  methodlist = offset_table.get(_class).Methods.get(_method);
           for (MethodInfo method_params : methodlist) {
