@@ -1,32 +1,35 @@
 # MiniJava Static Checking (Semantic Analysis)
-### Εργασία 2 — Μεταγλωττιστές
-**Αντώνιος Σφηκάκης — sdi2200178**
+
+A semantic analyzer and type checker for MiniJava — a statically-typed subset of Java — built around a JavaCC/JTB front-end. Covers full type checking, inheritance-aware override/overload resolution, and field/method offset computation with inheritance-aware memory layout. Originally built for a university compilers course; validated at 10/10 against a hidden test suite (see **Grade** below).
+
+**Antonis Sfikakis**
 
 ---
 
-## Πώς να τρέξετε το πρόγραμμα
+## How to run
 
-```bash
+```
 make
 cd build
-java Main <αρχείο1.java> <αρχείο2.java> ...
+java Main <file1.java> <file2.java> ...
 ```
 
-Το πρόγραμμα δέχεται ένα ή περισσότερα αρχεία MiniJava ως ορίσματα. Για κάθε αρχείο εκτελεί parsing, semantic analysis και υπολογισμό offsets. Αν ένα αρχείο περιέχει σημασιολογικό σφάλμα, τυπώνεται μήνυμα λάθους. Αν είναι σωστό, τυπώνονται τα offsets των fields και methods κάθε κλάσης.
+The program accepts one or more MiniJava files as arguments. For each file, it performs parsing, semantic analysis, and offset calculation. If a file contains a semantic error, an error message is printed; if it's valid, the offsets of every class's fields and methods are printed.
 
-Για καθαρό build:
-```bash
+For a clean build:
+
+```
 make clean
 make
 ```
 
 ---
 
-## Δομή του Project
+## Project structure
 
 ```
 ├── Makefile
-├── minijava.jj                    # Η γραμματική MiniJava σε μορφή JavaCC
+├── minijava.jj                    # MiniJava grammar, in JavaCC form
 ├── lib/
 │   ├── jtb133di.jar               # Java Tree Builder
 │   └── javacc5.jar                # JavaCC Parser Generator
@@ -34,130 +37,147 @@ make
 │   ├── Main.java                  # Entry point — orchestration
 │   ├── SpyVisitor.java            # Visitor 1: Symbol Table Construction
 │   ├── SemAnalysisVisitor.java    # Visitor 2: Semantic Analysis / Type Checking
-│   ├── OffsetCalculator.java      # Υπολογισμός και εκτύπωση offsets
-│   └── ClassInfo.java             # Δομές δεδομένων (ClassInfo, MethodInfo)
-├── generated/                     # Αυτόματα παραγόμενα αρχεία
-│   ├── minijava-jtb.jj            # Εμπλουτισμένη γραμματική (JTB output)
-│   ├── syntaxtree/                # AST node κλάσεις (JTB output)
+│   ├── OffsetCalculator.java      # Offset computation and printing
+│   └── ClassInfo.java             # Data structures (ClassInfo, MethodInfo)
+├── generated/                     # Auto-generated files
+│   ├── minijava-jtb.jj            # Enriched grammar (JTB output)
+│   ├── syntaxtree/                # AST node classes (JTB output)
 │   ├── visitor/                   # Visitor interfaces + DepthFirst (JTB output)
-│   └── parser/                    # Parser + Lexer (JavaCC output)
-└── build/                         # Compiled .class αρχεία
+│   └── parser/                    # Parser + lexer (JavaCC output)
+└── build/                         # Compiled .class files
 ```
 
 ---
 
-## Αλυσίδα Εργαλείων
+## Toolchain
 
-Η αλυσίδα build ακολουθεί τα εξής βήματα:
+The build pipeline follows these steps:
 
-1. **JTB** — Παίρνει τη γραμματική (`minijava.jj`) και παράγει το εμπλουτισμένο `.jj`, τις AST node κλάσεις (`syntaxtree/`) και τα Visitor interfaces (`visitor/`).
-2. **JavaCC** — Παίρνει το εμπλουτισμένο `.jj` και παράγει τον parser και lexer σε Java (`parser/`).
-3. **javac** — Μεταγλωττίζει τα πάντα (generated + src) σε `.class` αρχεία.
+1. **JTB** — Takes the grammar (`minijava.jj`) and produces the enriched `.jj` file, the AST node classes (`syntaxtree/`), and the visitor interfaces (`visitor/`).
+2. **JavaCC** — Takes the enriched `.jj` file and generates the parser and lexer in Java (`parser/`).
+3. **javac** — Compiles everything (generated code + `src/`) into `.class` files.
 
 ---
 
-## Αρχιτεκτονική
+## Architecture
 
-Η εργασία χωρίζεται σε τρία βασικά στάδια:
+The work is split into three main stages:
 
 ### 1. SpyVisitor — Symbol Table Construction
 
-Ο πρώτος visitor διασχίζει το AST και συλλέγει πληροφορίες για κάθε κλάση, αποθηκεύοντάς τες σε δομή `LinkedHashMap<String, ClassInfo>`. Η χρήση LinkedHashMap εξασφαλίζει τη διατήρηση της σειράς δήλωσης, κάτι απαραίτητο για τον σωστό υπολογισμό offsets.
+The first visitor walks the AST and collects information about every class, storing it in a `LinkedHashMap<String, ClassInfo>`. Using a `LinkedHashMap` preserves declaration order, which is required for correct offset calculation later.
 
-**ClassInfo** — Αναπαριστά μία κλάση και περιέχει:
-- `LinkedHashMap<String, String> Field` — Τα πεδία της κλάσης (όνομα → τύπος)
-- `LinkedHashMap<String, List<MethodInfo>> Methods` — Οι μέθοδοι (όνομα → λίστα MethodInfo, λίστα για υποστήριξη overloading)
-- `String Parent_class` — Η γονική κλάση (null αν δεν κάνει extends)
+**ClassInfo** — represents a class and holds:
 
-**MethodInfo** — Αναπαριστά μία μέθοδο και περιέχει:
-- `String Return_type` — Τύπος επιστροφής
-- `LinkedHashMap<String, String> Parameters` — Παράμετροι με σειρά (όνομα → τύπος)
-- `HashMap<String, String> Local_vars` — Τοπικές μεταβλητές (όνομα → τύπος)
+- `LinkedHashMap<String, String> Field` — the class's fields (name → type)
+- `LinkedHashMap<String, List<MethodInfo>> Methods` — the methods (name → list of `MethodInfo`, a list to support overloading)
+- `String Parent_class` — the parent class (`null` if there's no `extends`)
 
-Ο SpyVisitor εκτελεί επίσης τους εξής ελέγχους κατά τη συλλογή:
+**MethodInfo** — represents a method and holds:
+
+- `String Return_type` — the return type
+- `LinkedHashMap<String, String> Parameters` — parameters, in order (name → type)
+- `HashMap<String, String> Local_vars` — local variables (name → type)
+
+`SpyVisitor` also performs the following checks while collecting this information:
+
 - Duplicate class names
-- Duplicate field names μέσα στην ίδια κλάση
-- Duplicate parameter names μέσα στην ίδια μέθοδο
-- Duplicate local variable names μέσα στην ίδια μέθοδο
-- Η γονική κλάση σε extends πρέπει να έχει οριστεί πριν
+- Duplicate field names within the same class
+- Duplicate parameter names within the same method
+- Duplicate local variable names within the same method
+- A parent class named in an `extends` must already be defined
 
 ### 2. SemAnalysisVisitor — Semantic Analysis & Type Checking
 
-Ο δεύτερος visitor διασχίζει ξανά το AST χρησιμοποιώντας το symbol table που κατασκεύασε ο πρώτος. Εκτελεί τους εξής ελέγχους:
+The second visitor walks the AST again, this time using the symbol table built by the first. It performs the following checks:
 
-**Κληρονομικότητα (Inheritance):**
-- Circular inheritance detection (A extends B, B extends A)
+**Inheritance:**
 
-**Type Checking σε Expressions:**
-- Αριθμητικές πράξεις (`+`, `-`, `*`): απαιτούν `int` operands, επιστρέφουν `int`
-- Σύγκριση (`<`): απαιτεί `int` operands, επιστρέφει `boolean`
-- Λογικές πράξεις (`&&`): απαιτεί `boolean` operands, επιστρέφει `boolean`
-- Λογική άρνηση (`!`): απαιτεί `boolean` operand, επιστρέφει `boolean`
-- Array lookup (`a[i]`): απαιτεί `int[]` και `int` index, επιστρέφει `int`
-- Array length (`a.length`): απαιτεί `int[]`, επιστρέφει `int`
-- Array allocation (`new int[expr]`): απαιτεί `int` μέγεθος, επιστρέφει `int[]`
-- Object allocation (`new A()`): ελέγχει ότι η κλάση υπάρχει, επιστρέφει τον τύπο της
+- Circular inheritance detection (`A extends B`, `B extends A`)
+
+**Type checking on expressions:**
+
+- Arithmetic operations (`+`, `-`, `*`): require `int` operands, return `int`
+- Comparison (`<`): requires `int` operands, returns `boolean`
+- Logical AND (`&&`): requires `boolean` operands, returns `boolean`
+- Logical negation (`!`): requires a `boolean` operand, returns `boolean`
+- Array lookup (`a[i]`): requires `int[]` and an `int` index, returns `int`
+- Array length (`a.length`): requires `int[]`, returns `int`
+- Array allocation (`new int[expr]`): requires an `int` size, returns `int[]`
+- Object allocation (`new A()`): checks the class exists, returns its type
 
 **Statements:**
-- Assignment: ο τύπος δεξιά πρέπει να είναι compatible με τον τύπο αριστερά (υποστηρίζεται subtyping)
-- Array assignment: ελέγχει `int[]`, `int` index, `int` value
-- If/While: η condition πρέπει να είναι `boolean`
-- Print: η expression πρέπει να είναι `int`
 
-**Method Calls (MessageSend):**
-- Το αντικείμενο πρέπει να είναι τύπου κλάσης (όχι primitive)
-- Η μέθοδος πρέπει να υπάρχει στην κλάση ή σε κάποιον πρόγονο
-- Οι τύποι των arguments πρέπει να ταιριάζουν με τις παραμέτρους (υποστηρίζεται subtyping)
-- Υποστηρίζεται αναζήτηση μεθόδων σε ολόκληρη την αλυσίδα κληρονομικότητας (μέθοδος `GetAllMethods`)
+- Assignment: the right-hand type must be compatible with the left-hand type (subtyping is supported)
+- Array assignment: checks `int[]`, `int` index, `int` value
+- If/While: the condition must be `boolean`
+- Print: the expression must be `int`
 
-**Variable Lookup:**
-- Αναζήτηση μεταβλητών με σειρά: local vars → parameters → fields → parent fields
-- Local variable shadows field με ίδιο όνομα
+**Method calls (MessageSend):**
 
-**Return Type:**
-- Ο τύπος του return expression πρέπει να είναι compatible με τον δηλωμένο τύπο επιστροφής
+- The receiver must be a class type (not a primitive)
+- The method must exist in the class or in one of its ancestors
+- Argument types must match the parameters (subtyping is supported)
+- Method lookup spans the entire inheritance chain (via `GetAllMethods`)
 
-**Override/Overload:**
-- Override: μέθοδος σε subclass με ίδιο όνομα και ίδιους τύπους παραμέτρων πρέπει να έχει ίδιο return type
-- Overload: μέθοδοι με ίδιο όνομα πρέπει να ξεχωρίζουν unambiguously — πρέπει να υπάρχει τουλάχιστον μία θέση παραμέτρου χωρίς σχέση subtype/supertype
-- Οι έλεγχοι γίνονται τόσο μέσα στην ίδια κλάση όσο και μεταξύ child/parent κλάσεων
+**Variable lookup:**
 
-**Βοηθητικές μέθοδοι:**
-- `LookupType(var)` — Αναζήτηση τύπου μεταβλητής (local → params → fields → parent fields)
-- `LookupFather(class, father)` — Ελέγχει αν μια κλάση είναι subtype μιας άλλης
-- `GetAllMethods(class, method)` — Συλλέγει όλες τις μεθόδους με ένα όνομα από ολόκληρη την αλυσίδα κληρονομικότητας
-- `isCompatible(from, to)` — Ελέγχει αν δύο τύποι είναι compatible (ίδιοι ή subtype)
-- `IsPrimitive(type)` — Ελέγχει αν ένας τύπος είναι primitive (`int`, `boolean`, `int[]`)
-- `CheckOverride(method)` — Ελέγχει σωστό overriding μεθόδου
-- `CheckOverload(method)` — Ελέγχει ότι δεν υπάρχει ambiguous overloading
+- Variables are resolved in order: local vars → parameters → fields → parent fields
+- A local variable shadows a field of the same name
 
-**Μηχανισμός isVariable:**
-Η μεταβλητή `isVariable` χρησιμοποιείται για να ξεχωρίζει πότε ένα Identifier αναπαριστά μεταβλητή (χρειάζεται lookup τύπου) και πότε αναπαριστά όνομα κλάσης ή μεθόδου (επιστρέφεται ως string). Ενεργοποιείται στη `visit(PrimaryExpression)` και απενεργοποιείται σε σημεία όπως `AllocationExpression` και `MethodDeclaration` όπου τα Identifiers δεν είναι μεταβλητές.
+**Return type:**
 
-### 3. OffsetCalculator — Υπολογισμός Offsets
+- The type of the return expression must be compatible with the declared return type
 
-Υπολογίζει και τυπώνει τα offsets για τα fields και τις methods κάθε κλάσης (εξαιρείται η MainClass).
+**Override / overload:**
 
-**Μεγέθη τύπων:**
+- **Override:** a method in a subclass with the same name and parameter types as one in the parent must have the same return type
+- **Overload:** methods sharing a name must be unambiguously distinguishable — at least one parameter position must have no subtype/supertype relationship between the two signatures
+- These checks apply both within the same class and across parent/child classes
+
+**Helper methods:**
+
+- `LookupType(var)` — resolves a variable's type (local → params → fields → parent fields)
+- `LookupFather(class, father)` — checks whether a class is a subtype of another
+- `GetAllMethods(class, method)` — collects every method with a given name across the whole inheritance chain
+- `isCompatible(from, to)` — checks whether two types are compatible (same, or subtype)
+- `IsPrimitive(type)` — checks whether a type is primitive (`int`, `boolean`, `int[]`)
+- `CheckOverride(method)` — validates correct method overriding
+- `CheckOverload(method)` — ensures there's no ambiguous overloading
+
+**The `isVariable` mechanism:** the `isVariable` flag distinguishes when an `Identifier` represents a variable (needs a type lookup) versus when it represents a class or method name (returned as a plain string). It's turned on in `visit(PrimaryExpression)` and turned off at points such as `AllocationExpression` and `MethodDeclaration`, where identifiers are not variables.
+
+### 3. OffsetCalculator — Offset Calculation
+
+Computes and prints the field/method offsets for every class (the `MainClass` is excluded).
+
+**Type sizes:**
+
 - `int` → 4 bytes
 - `boolean` → 1 byte
 - Pointers (class types, `int[]`) → 8 bytes
 - Methods → 8 bytes (function pointer)
 
-**Κανόνες:**
-- Κλάσεις χωρίς extends: offsets ξεκινούν από 0
-- Κλάσεις με extends: τα offsets συνεχίζουν από εκεί που τελείωσε ο parent
-- Override methods δεν τυπώνονται (κρατούν το offset του parent)
-- Overloaded methods τυπώνονται ξεχωριστά με suffix τύπων (π.χ. `foo`, `foo_int`, `foo_int_int`)
+**Rules:**
 
-**Υλοποίηση:**
-- `HashMap<String, Pair> class_offsets` — Αποθηκεύει τα τελικά offsets κάθε κλάσης (field_offset, method_offset) για χρήση από τα παιδιά
-- `HashMap<String, Set<String>> methodSignatures` — Αποθηκεύει τα method signatures ανά κλάση για ανίχνευση overrides. Τα signatures κληρονομούνται από τον parent, και αν ένα νέο method signature υπάρχει ήδη στο set, αναγνωρίζεται ως override και παραλείπεται
+- Classes without `extends`: offsets start at 0
+- Classes with `extends`: offsets continue from where the parent left off
+- Overridden methods aren't printed (they keep the parent's offset)
+- Overloaded methods are printed separately, with a type suffix (e.g. `foo`, `foo_int`, `foo_int_int`)
+
+**Implementation:**
+
+- `HashMap<String, Pair> class_offsets` — stores each class's final offsets (field offset, method offset) for its children to build on
+- `HashMap<String, Set<String>> methodSignatures` — stores method signatures per class to detect overrides. Signatures are inherited from the parent, and if a new method signature already exists in the set, it's recognized as an override and skipped
 
 ---
 
-## Σημειώσεις
+## Notes
 
-- Η MainClass αντιμετωπίζεται ειδικά: δημιουργείται ένα MethodInfo για τη `main` ώστε να υποστηρίζεται semantic checking στο σώμα της, αλλά δεν εμφανίζεται στα offsets.
-- Overloaded methods με ίδιο όνομα ομαδοποιούνται κάτω από το ίδιο key στο LinkedHashMap, οπότε η σειρά εκτύπωσης μπορεί να διαφέρει ελαφρώς από τη σειρά δήλωσης (αποδεκτό σύμφωνα με τους διδάσκοντες).
-- Τα generated αρχεία (JTB + JavaCC output) βρίσκονται στον φάκελο `generated/` και παράγονται αυτόματα με `make`.
+- `MainClass` is handled specially: a `MethodInfo` is created for `main` so that semantic checking still applies to its body, but it doesn't appear in the offset output.
+- Overloaded methods sharing a name are grouped under the same key in the `LinkedHashMap`, so the print order can differ slightly from declaration order (confirmed acceptable by the course staff).
+- Generated files (JTB + JavaCC output) live under `generated/` and are produced automatically by `make`.
+
+## Grade
+
+10/10 — Compilers, University of Athens (EKPA)
